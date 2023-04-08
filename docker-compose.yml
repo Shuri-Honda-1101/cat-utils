@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  db:
+    container_name: cat-utils-db
+    build:
+      context: .
+      dockerfile: dockerfile.db
+    tty: true
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: "cat-utils-db"
+      MYSQL_USER: "user"
+      MYSQL_PASSWORD: "password"
+    volumes:
+      - type: volume
+        source: mysql_data
+        target: /var/lib/mysql
+    networks:
+      - default
