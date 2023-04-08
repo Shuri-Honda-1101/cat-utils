@@ -5,7 +5,7 @@ services:
     container_name: cat-utils-db
     build:
       context: .
-      dockerfile: dockerfile.db
+      dockerfile: Dockerfile.db
     tty: true
     ports:
       - 3306:3306
@@ -20,3 +20,8 @@ services:
         target: /var/lib/mysql
     networks:
       - default
+
+networks:
+  default:
+volumes:
+  mysql_data:
