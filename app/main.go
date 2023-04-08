@@ -1,5 +1,9 @@
 package main
 
+// NOTE:https://entgo.io/ja/docs/getting-started
+// NOTE:https://zenn.dev/a_ichi1/articles/c9f3870350c5e2
+// NOTE:https://github.com/mattn/echo-ent-example/blob/main/main.go
+
 import (
 	"context"
 	"fmt"
@@ -21,7 +25,8 @@ func main() {
 		fmt.Printf("読み込み出来ませんでした: %v", err)
 	} 
 
-	// MySQLデータベースに接続し、Ent ORMライブラリの自動マイグレーションツールを実行して、データベーススキーマを作成
+	// MySQLデータベースに接続
+	// generateしてからじゃないと"ent. Open"はundefined
     client, err := ent.Open("mysql", os.Getenv("DB_URL"))
     if err != nil {
         log.Fatalf("failed opening connection to mysql: %v", err)
