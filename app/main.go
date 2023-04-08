@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"entgo.io/ent/entc/integration/ent"
+	"github.com/Shuri-Honda-1101/cat-utils/ent"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo"
 
