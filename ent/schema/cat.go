@@ -27,5 +27,6 @@ func (Cat) Fields() []ent.Field {
 func (Cat) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("owner", User.Type).Ref("cats").Unique().Comment("猫のオーナー。Userと1対多の関係"),
+		edge.To("toilets", Toilet.Type).Comment("猫のトイレの記録。Toiletと1対多の関係"),
 	}
 }
