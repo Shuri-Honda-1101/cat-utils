@@ -40,6 +40,8 @@ jobs:
         run: go run github.com/hedwigz/entviz/cmd/entviz ./ent/schema
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
+        with:
+          path: "/"
 
   # Deployment job
   deploy:
