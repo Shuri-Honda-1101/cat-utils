@@ -23,20 +23,21 @@ func main() {
 	err := godotenv.Load(".env")
 	if err != nil {
 		fmt.Printf("読み込み出来ませんでした: %v", err)
-	} 
+	}
 
 	// MySQLデータベースに接続
-	// generateしてからじゃないと"ent. Open"はundefined
-    client, err := ent.Open("mysql", os.Getenv("DB_URL"))
-    if err != nil {
-        log.Fatalf("failed opening connection to mysql: %v", err)
-    }
+	// ※generateしてからじゃないと"ent. Open"はundefined
+	client, err := ent.Open("mysql", os.Getenv("DB_URL"))
+	if err != nil {
+		log.Fatalf("failed opening connection to mysql: %v", err)
+	}
 	// リソースを解放
-    defer client.Close()
-    // Entの自動マイグレーションツールを実行して、データベーススキーマを作成
-    if err := client.Schema.Create(context.Background()); err != nil {
-        log.Fatalf("failed creating schema resources: %v", err)
-    }
+	defer client.Close()
+	// Entの自動マイグレーションツールを実行して、データベーススキーマを作成
+	// NOTE:https://entgo.io/ja/docs/migrate/
+	if err := client.Schema.Create(context.Background()); err != nil {
+		log.Fatalf("failed creating schema resources: %v", err)
+	}
 
 	// Echoのインスタンスを作成
 	e := echo.New()
