@@ -6,5 +6,11 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Cat is the predicate function for cat builders.
+type Cat func(*sql.Selector)
+
+// Toilet is the predicate function for toilet builders.
+type Toilet func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

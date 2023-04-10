@@ -5,16 +5,48 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/Shuri-Honda-1101/cat-utils/ent/user"
+	"github.com/google/uuid"
 )
 
 // User is the model entity for the User schema.
 type User struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	// ユーザーID。UUIDで生成される変更不可なフィールド
+	ID uuid.UUID `json:"id,omitempty"`
+	// ユーザー名。空文字不可。最大長は15文字。
+	Name string `json:"name,omitempty"`
+	// メールアドレス。空文字不可。一意。
+	Email string `json:"email,omitempty"`
+	// 作成日時。デフォルトは現在時刻。変更不可。
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// 更新日時。デフォルトは現在時刻。更新時は現在時刻。
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UserQuery when eager-loading is set.
+	Edges UserEdges `json:"edges"`
+}
+
+// UserEdges holds the relations/edges for other nodes in the graph.
+type UserEdges struct {
+	// Cats holds the value of the cats edge.
+	Cats []*Cat `json:"cats,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// CatsOrErr returns the Cats value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) CatsOrErr() ([]*Cat, error) {
+	if e.loadedTypes[0] {
+		return e.Cats, nil
+	}
+	return nil, &NotLoadedError{edge: "cats"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -22,8 +54,12 @@ func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case user.FieldName, user.FieldEmail:
+			values[i] = new(sql.NullString)
+		case user.FieldCreatedAt, user.FieldUpdatedAt:
+			values[i] = new(sql.NullTime)
 		case user.FieldID:
-			values[i] = new(sql.NullInt64)
+			values[i] = new(uuid.UUID)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type User", columns[i])
 		}
@@ -40,14 +76,43 @@ func (u *User) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case user.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value != nil {
+				u.ID = *value
 			}
-			u.ID = int(value.Int64)
+		case user.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				u.Name = value.String
+			}
+		case user.FieldEmail:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field email", values[i])
+			} else if value.Valid {
+				u.Email = value.String
+			}
+		case user.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				u.CreatedAt = value.Time
+			}
+		case user.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				u.UpdatedAt = value.Time
+			}
 		}
 	}
 	return nil
+}
+
+// QueryCats queries the "cats" edge of the User entity.
+func (u *User) QueryCats() *CatQuery {
+	return NewUserClient(u.config).QueryCats(u)
 }
 
 // Update returns a builder for updating this User.
@@ -72,7 +137,18 @@ func (u *User) Unwrap() *User {
 func (u *User) String() string {
 	var builder strings.Builder
 	builder.WriteString("User(")
-	builder.WriteString(fmt.Sprintf("id=%v", u.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", u.ID))
+	builder.WriteString("name=")
+	builder.WriteString(u.Name)
+	builder.WriteString(", ")
+	builder.WriteString("email=")
+	builder.WriteString(u.Email)
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(u.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(u.UpdatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -6,12 +6,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/Shuri-Honda-1101/cat-utils/ent/cat"
 	"github.com/Shuri-Honda-1101/cat-utils/ent/predicate"
 	"github.com/Shuri-Honda-1101/cat-utils/ent/user"
+	"github.com/google/uuid"
 )
 
 // UserUpdate is the builder for updating User entities.
@@ -27,13 +30,68 @@ func (uu *UserUpdate) Where(ps ...predicate.User) *UserUpdate {
 	return uu
 }
 
+// SetName sets the "name" field.
+func (uu *UserUpdate) SetName(s string) *UserUpdate {
+	uu.mutation.SetName(s)
+	return uu
+}
+
+// SetEmail sets the "email" field.
+func (uu *UserUpdate) SetEmail(s string) *UserUpdate {
+	uu.mutation.SetEmail(s)
+	return uu
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (uu *UserUpdate) SetUpdatedAt(t time.Time) *UserUpdate {
+	uu.mutation.SetUpdatedAt(t)
+	return uu
+}
+
+// AddCatIDs adds the "cats" edge to the Cat entity by IDs.
+func (uu *UserUpdate) AddCatIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.AddCatIDs(ids...)
+	return uu
+}
+
+// AddCats adds the "cats" edges to the Cat entity.
+func (uu *UserUpdate) AddCats(c ...*Cat) *UserUpdate {
+	ids := make([]uuid.UUID, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.AddCatIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
 }
 
+// ClearCats clears all "cats" edges to the Cat entity.
+func (uu *UserUpdate) ClearCats() *UserUpdate {
+	uu.mutation.ClearCats()
+	return uu
+}
+
+// RemoveCatIDs removes the "cats" edge to Cat entities by IDs.
+func (uu *UserUpdate) RemoveCatIDs(ids ...uuid.UUID) *UserUpdate {
+	uu.mutation.RemoveCatIDs(ids...)
+	return uu
+}
+
+// RemoveCats removes "cats" edges to Cat entities.
+func (uu *UserUpdate) RemoveCats(c ...*Cat) *UserUpdate {
+	ids := make([]uuid.UUID, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uu.RemoveCatIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (uu *UserUpdate) Save(ctx context.Context) (int, error) {
+	uu.defaults()
 	return withHooks[int, UserMutation](ctx, uu.sqlSave, uu.mutation, uu.hooks)
 }
 
@@ -59,14 +117,94 @@ func (uu *UserUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (uu *UserUpdate) defaults() {
+	if _, ok := uu.mutation.UpdatedAt(); !ok {
+		v := user.UpdateDefaultUpdatedAt()
+		uu.mutation.SetUpdatedAt(v)
+	}
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (uu *UserUpdate) check() error {
+	if v, ok := uu.mutation.Name(); ok {
+		if err := user.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "User.name": %w`, err)}
+		}
+	}
+	if v, ok := uu.mutation.Email(); ok {
+		if err := user.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "User.email": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	_spec := sqlgraph.NewUpdateSpec(user.Table, user.Columns, sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt))
+	if err := uu.check(); err != nil {
+		return n, err
+	}
+	_spec := sqlgraph.NewUpdateSpec(user.Table, user.Columns, sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID))
 	if ps := uu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := uu.mutation.Name(); ok {
+		_spec.SetField(user.FieldName, field.TypeString, value)
+	}
+	if value, ok := uu.mutation.Email(); ok {
+		_spec.SetField(user.FieldEmail, field.TypeString, value)
+	}
+	if value, ok := uu.mutation.UpdatedAt(); ok {
+		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if uu.mutation.CatsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CatsTable,
+			Columns: []string{user.CatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(cat.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedCatsIDs(); len(nodes) > 0 && !uu.mutation.CatsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CatsTable,
+			Columns: []string{user.CatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(cat.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.CatsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CatsTable,
+			Columns: []string{user.CatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(cat.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -88,9 +226,63 @@ type UserUpdateOne struct {
 	mutation *UserMutation
 }
 
+// SetName sets the "name" field.
+func (uuo *UserUpdateOne) SetName(s string) *UserUpdateOne {
+	uuo.mutation.SetName(s)
+	return uuo
+}
+
+// SetEmail sets the "email" field.
+func (uuo *UserUpdateOne) SetEmail(s string) *UserUpdateOne {
+	uuo.mutation.SetEmail(s)
+	return uuo
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (uuo *UserUpdateOne) SetUpdatedAt(t time.Time) *UserUpdateOne {
+	uuo.mutation.SetUpdatedAt(t)
+	return uuo
+}
+
+// AddCatIDs adds the "cats" edge to the Cat entity by IDs.
+func (uuo *UserUpdateOne) AddCatIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.AddCatIDs(ids...)
+	return uuo
+}
+
+// AddCats adds the "cats" edges to the Cat entity.
+func (uuo *UserUpdateOne) AddCats(c ...*Cat) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.AddCatIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
+}
+
+// ClearCats clears all "cats" edges to the Cat entity.
+func (uuo *UserUpdateOne) ClearCats() *UserUpdateOne {
+	uuo.mutation.ClearCats()
+	return uuo
+}
+
+// RemoveCatIDs removes the "cats" edge to Cat entities by IDs.
+func (uuo *UserUpdateOne) RemoveCatIDs(ids ...uuid.UUID) *UserUpdateOne {
+	uuo.mutation.RemoveCatIDs(ids...)
+	return uuo
+}
+
+// RemoveCats removes "cats" edges to Cat entities.
+func (uuo *UserUpdateOne) RemoveCats(c ...*Cat) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return uuo.RemoveCatIDs(ids...)
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -108,6 +300,7 @@ func (uuo *UserUpdateOne) Select(field string, fields ...string) *UserUpdateOne 
 
 // Save executes the query and returns the updated User entity.
 func (uuo *UserUpdateOne) Save(ctx context.Context) (*User, error) {
+	uuo.defaults()
 	return withHooks[*User, UserMutation](ctx, uuo.sqlSave, uuo.mutation, uuo.hooks)
 }
 
@@ -133,8 +326,34 @@ func (uuo *UserUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (uuo *UserUpdateOne) defaults() {
+	if _, ok := uuo.mutation.UpdatedAt(); !ok {
+		v := user.UpdateDefaultUpdatedAt()
+		uuo.mutation.SetUpdatedAt(v)
+	}
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (uuo *UserUpdateOne) check() error {
+	if v, ok := uuo.mutation.Name(); ok {
+		if err := user.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "User.name": %w`, err)}
+		}
+	}
+	if v, ok := uuo.mutation.Email(); ok {
+		if err := user.EmailValidator(v); err != nil {
+			return &ValidationError{Name: "email", err: fmt.Errorf(`ent: validator failed for field "User.email": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
-	_spec := sqlgraph.NewUpdateSpec(user.Table, user.Columns, sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt))
+	if err := uuo.check(); err != nil {
+		return _node, err
+	}
+	_spec := sqlgraph.NewUpdateSpec(user.Table, user.Columns, sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID))
 	id, ok := uuo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "User.id" for update`)}
@@ -158,6 +377,60 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := uuo.mutation.Name(); ok {
+		_spec.SetField(user.FieldName, field.TypeString, value)
+	}
+	if value, ok := uuo.mutation.Email(); ok {
+		_spec.SetField(user.FieldEmail, field.TypeString, value)
+	}
+	if value, ok := uuo.mutation.UpdatedAt(); ok {
+		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if uuo.mutation.CatsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CatsTable,
+			Columns: []string{user.CatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(cat.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedCatsIDs(); len(nodes) > 0 && !uuo.mutation.CatsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CatsTable,
+			Columns: []string{user.CatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(cat.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.CatsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.CatsTable,
+			Columns: []string{user.CatsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(cat.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: uuo.config}
 	_spec.Assign = _node.assignValues

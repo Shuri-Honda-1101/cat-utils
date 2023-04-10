@@ -4,14 +4,17 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/Shuri-Honda-1101/cat-utils/ent/cat"
 	"github.com/Shuri-Honda-1101/cat-utils/ent/predicate"
 	"github.com/Shuri-Honda-1101/cat-utils/ent/user"
+	"github.com/google/uuid"
 )
 
 // UserQuery is the builder for querying User entities.
@@ -21,6 +24,7 @@ type UserQuery struct {
 	order      []OrderFunc
 	inters     []Interceptor
 	predicates []predicate.User
+	withCats   *CatQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -57,6 +61,28 @@ func (uq *UserQuery) Order(o ...OrderFunc) *UserQuery {
 	return uq
 }
 
+// QueryCats chains the current query on the "cats" edge.
+func (uq *UserQuery) QueryCats() *CatQuery {
+	query := (&CatClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, selector),
+			sqlgraph.To(cat.Table, cat.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.CatsTable, user.CatsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first User entity from the query.
 // Returns a *NotFoundError when no User was found.
 func (uq *UserQuery) First(ctx context.Context) (*User, error) {
@@ -81,8 +107,8 @@ func (uq *UserQuery) FirstX(ctx context.Context) *User {
 
 // FirstID returns the first User ID from the query.
 // Returns a *NotFoundError when no User ID was found.
-func (uq *UserQuery) FirstID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (uq *UserQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = uq.Limit(1).IDs(setContextOp(ctx, uq.ctx, "FirstID")); err != nil {
 		return
 	}
@@ -94,7 +120,7 @@ func (uq *UserQuery) FirstID(ctx context.Context) (id int, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (uq *UserQuery) FirstIDX(ctx context.Context) int {
+func (uq *UserQuery) FirstIDX(ctx context.Context) uuid.UUID {
 	id, err := uq.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -132,8 +158,8 @@ func (uq *UserQuery) OnlyX(ctx context.Context) *User {
 // OnlyID is like Only, but returns the only User ID in the query.
 // Returns a *NotSingularError when more than one User ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (uq *UserQuery) OnlyID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (uq *UserQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = uq.Limit(2).IDs(setContextOp(ctx, uq.ctx, "OnlyID")); err != nil {
 		return
 	}
@@ -149,7 +175,7 @@ func (uq *UserQuery) OnlyID(ctx context.Context) (id int, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (uq *UserQuery) OnlyIDX(ctx context.Context) int {
+func (uq *UserQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 	id, err := uq.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -177,7 +203,7 @@ func (uq *UserQuery) AllX(ctx context.Context) []*User {
 }
 
 // IDs executes the query and returns a list of User IDs.
-func (uq *UserQuery) IDs(ctx context.Context) (ids []int, err error) {
+func (uq *UserQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
 	if uq.ctx.Unique == nil && uq.path != nil {
 		uq.Unique(true)
 	}
@@ -189,7 +215,7 @@ func (uq *UserQuery) IDs(ctx context.Context) (ids []int, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (uq *UserQuery) IDsX(ctx context.Context) []int {
+func (uq *UserQuery) IDsX(ctx context.Context) []uuid.UUID {
 	ids, err := uq.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -249,14 +275,38 @@ func (uq *UserQuery) Clone() *UserQuery {
 		order:      append([]OrderFunc{}, uq.order...),
 		inters:     append([]Interceptor{}, uq.inters...),
 		predicates: append([]predicate.User{}, uq.predicates...),
+		withCats:   uq.withCats.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
 		path: uq.path,
 	}
 }
 
+// WithCats tells the query-builder to eager-load the nodes that are connected to
+// the "cats" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithCats(opts ...func(*CatQuery)) *UserQuery {
+	query := (&CatClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withCats = query
+	return uq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		Name string `json:"name,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.User.Query().
+//		GroupBy(user.FieldName).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
 func (uq *UserQuery) GroupBy(field string, fields ...string) *UserGroupBy {
 	uq.ctx.Fields = append([]string{field}, fields...)
 	grbuild := &UserGroupBy{build: uq}
@@ -268,6 +318,16 @@ func (uq *UserQuery) GroupBy(field string, fields ...string) *UserGroupBy {
 
 // Select allows the selection one or more fields/columns for the given query,
 // instead of selecting all fields in the entity.
+//
+// Example:
+//
+//	var v []struct {
+//		Name string `json:"name,omitempty"`
+//	}
+//
+//	client.User.Query().
+//		Select(user.FieldName).
+//		Scan(ctx, &v)
 func (uq *UserQuery) Select(fields ...string) *UserSelect {
 	uq.ctx.Fields = append(uq.ctx.Fields, fields...)
 	sbuild := &UserSelect{UserQuery: uq}
@@ -309,8 +369,11 @@ func (uq *UserQuery) prepareQuery(ctx context.Context) error {
 
 func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, error) {
 	var (
-		nodes = []*User{}
-		_spec = uq.querySpec()
+		nodes       = []*User{}
+		_spec       = uq.querySpec()
+		loadedTypes = [1]bool{
+			uq.withCats != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*User).scanValues(nil, columns)
@@ -318,6 +381,7 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &User{config: uq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -329,7 +393,46 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := uq.withCats; query != nil {
+		if err := uq.loadCats(ctx, query, nodes,
+			func(n *User) { n.Edges.Cats = []*Cat{} },
+			func(n *User, e *Cat) { n.Edges.Cats = append(n.Edges.Cats, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (uq *UserQuery) loadCats(ctx context.Context, query *CatQuery, nodes []*User, init func(*User), assign func(*User, *Cat)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Cat(func(s *sql.Selector) {
+		s.Where(sql.InValues(user.CatsColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_cats
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_cats" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_cats" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (uq *UserQuery) sqlCount(ctx context.Context) (int, error) {
@@ -342,7 +445,7 @@ func (uq *UserQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (uq *UserQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(user.Table, user.Columns, sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewQuerySpec(user.Table, user.Columns, sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID))
 	_spec.From = uq.sql
 	if unique := uq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique

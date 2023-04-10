@@ -9,6 +9,30 @@ import (
 	"github.com/Shuri-Honda-1101/cat-utils/ent"
 )
 
+// The CatFunc type is an adapter to allow the use of ordinary
+// function as Cat mutator.
+type CatFunc func(context.Context, *ent.CatMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CatFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CatMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CatMutation", m)
+}
+
+// The ToiletFunc type is an adapter to allow the use of ordinary
+// function as Toilet mutator.
+type ToiletFunc func(context.Context, *ent.ToiletMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ToiletFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ToiletMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ToiletMutation", m)
+}
+
 // The UserFunc type is an adapter to allow the use of ordinary
 // function as User mutator.
 type UserFunc func(context.Context, *ent.UserMutation) (ent.Value, error)

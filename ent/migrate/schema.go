@@ -8,9 +8,58 @@ import (
 )
 
 var (
+	// CatsColumns holds the columns for the "cats" table.
+	CatsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "name", Type: field.TypeString, Size: 15},
+		{Name: "birthday", Type: field.TypeTime, Nullable: true},
+		{Name: "sex", Type: field.TypeEnum, Enums: []string{"male", "female"}},
+		{Name: "weight", Type: field.TypeInt, Nullable: true},
+		{Name: "user_cats", Type: field.TypeUUID, Nullable: true},
+	}
+	// CatsTable holds the schema information for the "cats" table.
+	CatsTable = &schema.Table{
+		Name:       "cats",
+		Columns:    CatsColumns,
+		PrimaryKey: []*schema.Column{CatsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "cats_users_cats",
+				Columns:    []*schema.Column{CatsColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// ToiletsColumns holds the columns for the "toilets" table.
+	ToiletsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "time", Type: field.TypeTime},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"pee", "poo"}},
+		{Name: "memo", Type: field.TypeString, Nullable: true},
+		{Name: "cat_toilets", Type: field.TypeUUID, Nullable: true},
+	}
+	// ToiletsTable holds the schema information for the "toilets" table.
+	ToiletsTable = &schema.Table{
+		Name:       "toilets",
+		Columns:    ToiletsColumns,
+		PrimaryKey: []*schema.Column{ToiletsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "toilets_cats_toilets",
+				Columns:    []*schema.Column{ToiletsColumns[4]},
+				RefColumns: []*schema.Column{CatsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "name", Type: field.TypeString, Size: 15},
+		{Name: "email", Type: field.TypeString, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
@@ -20,9 +69,13 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		CatsTable,
+		ToiletsTable,
 		UsersTable,
 	}
 )
 
 func init() {
+	CatsTable.ForeignKeys[0].RefTable = UsersTable
+	ToiletsTable.ForeignKeys[0].RefTable = CatsTable
 }
