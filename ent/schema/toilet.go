@@ -17,8 +17,7 @@ func (Toilet) Fields() []ent.Field {
 		// IDはAutoIncrementで自動生成するため、宣言しない
 		field.Time("time").Comment("トイレに行った時間"),
 		field.Enum("type").Values("pee", "poo").Comment("トイレに行った種類。peeかpooのみ、peeは小便、pooは大便"),
-		field.Enum("condition").Values("normal", "accident").Comment("排泄物の状態。normalかaccidentのみ、normalは通常、accidentは異常"),
-		field.String("memo").Optional().Comment("メモ。nullable"),
+		field.String("memo").Optional().Comment("備考。nullable"),
 	}
 }
 
