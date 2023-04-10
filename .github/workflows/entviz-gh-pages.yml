@@ -41,8 +41,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
-          path: "."
-          name: "schema-viz.html"
+          path: "./schema-viz.html"
 
   # Deployment job
   deploy:
