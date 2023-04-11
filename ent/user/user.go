@@ -21,6 +21,8 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// FieldPassword holds the string denoting the password field in the database.
+	FieldPassword = "password"
 	// EdgeCats holds the string denoting the cats edge name in mutations.
 	EdgeCats = "cats"
 	// Table holds the table name of the user in the database.
@@ -41,6 +43,7 @@ var Columns = []string{
 	FieldEmail,
 	FieldCreatedAt,
 	FieldUpdatedAt,
+	FieldPassword,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
