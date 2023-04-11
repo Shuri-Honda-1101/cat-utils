@@ -31,6 +31,7 @@ func (User) Fields() []ent.Field {
 		field.Time("updated_at").
 			Default(time.Now).
 			UpdateDefault(time.Now).Comment("更新日時。デフォルトは現在時刻。更新時は現在時刻。"),
+		field.String("password").Sensitive().Comment("パスワード。センシティブ"),
 	}
 }
 
