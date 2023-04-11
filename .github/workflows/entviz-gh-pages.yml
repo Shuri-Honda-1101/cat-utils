@@ -39,7 +39,7 @@ jobs:
       - name: generate entviz
         run: go run github.com/hedwigz/entviz/cmd/entviz ./ent/schema
       - name: copy schema-viz.html
-        run: mkdir entviz && cp ./schema-viz.html ./entviz/index.html
+        run: mkdir entviz && cp ./ent/schema-viz.html ./entviz/index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
