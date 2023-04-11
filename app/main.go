@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/Shuri-Honda-1101/cat-utils/ent"
+	"github.com/Shuri-Honda-1101/cat-utils/ent/migrate"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo"
 
@@ -35,7 +36,9 @@ func main() {
 	defer client.Close()
 	// Entの自動マイグレーションツールを実行して、データベーススキーマを作成
 	// NOTE:https://entgo.io/ja/docs/migrate/
-	if err := client.Schema.Create(context.Background()); err != nil {
+	// デフォルトでは、Createは"append-only"モードなので、WithDropIndex と WithDropColumn でテーブルのカラムとインデックスを削除
+	err = client.Schema.Create(context.Background(), migrate.WithDropIndex(true), migrate.WithDropColumn(true))
+	if err != nil {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}
 
@@ -44,5 +47,12 @@ func main() {
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
+	//openapi.jsonファイルを提供するエンドポイントを作成
+	e.GET("/openapi_json", func(c echo.Context) error {
+		http.ServeFile(c.Response(), c.Request(), "ent/openapi.json")
+		return nil
+	})
+	// swaggeruiフォルダを提供するエンドポイントを作成
+	e.GET("/swaggerui/*", echo.WrapHandler(http.StripPrefix("/swaggerui/", http.FileServer(http.Dir("swaggerui")))))
 	e.Logger.Fatal(e.Start(":8000"))
 }
