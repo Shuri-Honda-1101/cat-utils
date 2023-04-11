@@ -7,6 +7,8 @@
 package tools
 
 import (
+	_ "ariga.io/ogent"
+	_ "entgo.io/contrib/entoas"
 	_ "entgo.io/ent/entc"
 	_ "github.com/hedwigz/entviz"
 )
