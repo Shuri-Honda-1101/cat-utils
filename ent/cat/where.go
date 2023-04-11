@@ -270,11 +270,7 @@ func HasOwner() predicate.Cat {
 // HasOwnerWith applies the HasEdge predicate on the "owner" edge with a given conditions (other predicates).
 func HasOwnerWith(preds ...predicate.User) predicate.Cat {
 	return predicate.Cat(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(OwnerInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, OwnerTable, OwnerColumn),
-		)
+		step := newOwnerStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -297,11 +293,7 @@ func HasToilets() predicate.Cat {
 // HasToiletsWith applies the HasEdge predicate on the "toilets" edge with a given conditions (other predicates).
 func HasToiletsWith(preds ...predicate.Toilet) predicate.Cat {
 	return predicate.Cat(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(ToiletsInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, ToiletsTable, ToiletsColumn),
-		)
+		step := newToiletsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

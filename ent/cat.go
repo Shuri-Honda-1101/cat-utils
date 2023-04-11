@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/Shuri-Honda-1101/cat-utils/ent/cat"
 	"github.com/Shuri-Honda-1101/cat-utils/ent/user"
@@ -29,8 +30,9 @@ type Cat struct {
 	Weight int `json:"weight,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CatQuery when eager-loading is set.
-	Edges     CatEdges `json:"edges"`
-	user_cats *uuid.UUID
+	Edges        CatEdges `json:"edges"`
+	user_cats    *uuid.UUID
+	selectValues sql.SelectValues
 }
 
 // CatEdges holds the relations/edges for other nodes in the graph.
@@ -82,7 +84,7 @@ func (*Cat) scanValues(columns []string) ([]any, error) {
 		case cat.ForeignKeys[0]: // user_cats
 			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
-			return nil, fmt.Errorf("unexpected column %q for type Cat", columns[i])
+			values[i] = new(sql.UnknownType)
 		}
 	}
 	return values, nil
@@ -133,9 +135,17 @@ func (c *Cat) assignValues(columns []string, values []any) error {
 				c.user_cats = new(uuid.UUID)
 				*c.user_cats = *value.S.(*uuid.UUID)
 			}
+		default:
+			c.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
+}
+
+// Value returns the ent.Value that was dynamically selected and assigned to the Cat.
+// This includes values selected through modifiers, order, etc.
+func (c *Cat) Value(name string) (ent.Value, error) {
+	return c.selectValues.Get(name)
 }
 
 // QueryOwner queries the "owner" edge of the Cat entity.

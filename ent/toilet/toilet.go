@@ -4,6 +4,9 @@ package toilet
 
 import (
 	"fmt"
+
+	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -80,4 +83,41 @@ func TypeValidator(_type Type) error {
 	default:
 		return fmt.Errorf("toilet: invalid enum value for type field: %q", _type)
 	}
+}
+
+// Order defines the ordering method for the Toilet queries.
+type Order func(*sql.Selector)
+
+// ByID orders the results by the id field.
+func ByID(opts ...sql.OrderTermOption) Order {
+	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByTime orders the results by the time field.
+func ByTime(opts ...sql.OrderTermOption) Order {
+	return sql.OrderByField(FieldTime, opts...).ToFunc()
+}
+
+// ByType orders the results by the type field.
+func ByType(opts ...sql.OrderTermOption) Order {
+	return sql.OrderByField(FieldType, opts...).ToFunc()
+}
+
+// ByMemo orders the results by the memo field.
+func ByMemo(opts ...sql.OrderTermOption) Order {
+	return sql.OrderByField(FieldMemo, opts...).ToFunc()
+}
+
+// ByCatField orders the results by cat field.
+func ByCatField(field string, opts ...sql.OrderTermOption) Order {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCatStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newCatStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CatInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, CatTable, CatColumn),
+	)
 }

@@ -370,11 +370,7 @@ func HasCats() predicate.User {
 // HasCatsWith applies the HasEdge predicate on the "cats" edge with a given conditions (other predicates).
 func HasCatsWith(preds ...predicate.Cat) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(CatsInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, CatsTable, CatsColumn),
-		)
+		step := newCatsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

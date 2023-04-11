@@ -70,7 +70,7 @@
     }
 
     
-    const entGraph = JSON.parse("{\"nodes\":[{\"id\":\"Cat\",\"fields\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"birthday\",\"type\":\"time.Time\"},{\"name\":\"sex\",\"type\":\"cat.Sex\"},{\"name\":\"weight\",\"type\":\"int\"}]},{\"id\":\"Toilet\",\"fields\":[{\"name\":\"time\",\"type\":\"time.Time\"},{\"name\":\"type\",\"type\":\"toilet.Type\"},{\"name\":\"memo\",\"type\":\"string\"}]},{\"id\":\"User\",\"fields\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"created_at\",\"type\":\"time.Time\"},{\"name\":\"updated_at\",\"type\":\"time.Time\"}]}],\"edges\":[{\"from\":\"Cat\",\"to\":\"Toilet\",\"label\":\"toilets\"},{\"from\":\"User\",\"to\":\"Cat\",\"label\":\"cats\"}]}");
+    const entGraph = JSON.parse("{\"nodes\":[{\"id\":\"Cat\",\"fields\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"birthday\",\"type\":\"time.Time\"},{\"name\":\"sex\",\"type\":\"cat.Sex\"},{\"name\":\"weight\",\"type\":\"int\"}]},{\"id\":\"Toilet\",\"fields\":[{\"name\":\"time\",\"type\":\"time.Time\"},{\"name\":\"type\",\"type\":\"toilet.Type\"},{\"name\":\"memo\",\"type\":\"string\"}]},{\"id\":\"User\",\"fields\":[{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"email\",\"type\":\"string\"},{\"name\":\"created_at\",\"type\":\"time.Time\"},{\"name\":\"updated_at\",\"type\":\"time.Time\"},{\"name\":\"password\",\"type\":\"string\"}]}],\"edges\":[{\"from\":\"Cat\",\"to\":\"Toilet\",\"label\":\"toilets\"},{\"from\":\"User\",\"to\":\"Cat\",\"label\":\"cats\"}]}");
     const nodes = new vis.DataSet((entGraph.nodes || []).map(n =>
     ({
       id: n.id,

@@ -5,6 +5,8 @@ package cat
 import (
 	"fmt"
 
+	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -101,4 +103,67 @@ func SexValidator(s Sex) error {
 	default:
 		return fmt.Errorf("cat: invalid enum value for sex field: %q", s)
 	}
+}
+
+// Order defines the ordering method for the Cat queries.
+type Order func(*sql.Selector)
+
+// ByID orders the results by the id field.
+func ByID(opts ...sql.OrderTermOption) Order {
+	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) Order {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByBirthday orders the results by the birthday field.
+func ByBirthday(opts ...sql.OrderTermOption) Order {
+	return sql.OrderByField(FieldBirthday, opts...).ToFunc()
+}
+
+// BySex orders the results by the sex field.
+func BySex(opts ...sql.OrderTermOption) Order {
+	return sql.OrderByField(FieldSex, opts...).ToFunc()
+}
+
+// ByWeight orders the results by the weight field.
+func ByWeight(opts ...sql.OrderTermOption) Order {
+	return sql.OrderByField(FieldWeight, opts...).ToFunc()
+}
+
+// ByOwnerField orders the results by owner field.
+func ByOwnerField(field string, opts ...sql.OrderTermOption) Order {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOwnerStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByToiletsCount orders the results by toilets count.
+func ByToiletsCount(opts ...sql.OrderTermOption) Order {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newToiletsStep(), opts...)
+	}
+}
+
+// ByToilets orders the results by toilets terms.
+func ByToilets(term sql.OrderTerm, terms ...sql.OrderTerm) Order {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newToiletsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newOwnerStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OwnerInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, OwnerTable, OwnerColumn),
+	)
+}
+func newToiletsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ToiletsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ToiletsTable, ToiletsColumn),
+	)
 }

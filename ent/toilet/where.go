@@ -214,11 +214,7 @@ func HasCat() predicate.Toilet {
 // HasCatWith applies the HasEdge predicate on the "cat" edge with a given conditions (other predicates).
 func HasCatWith(preds ...predicate.Cat) predicate.Toilet {
 	return predicate.Toilet(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(CatInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, CatTable, CatColumn),
-		)
+		step := newCatStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

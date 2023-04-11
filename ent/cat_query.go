@@ -22,7 +22,7 @@ import (
 type CatQuery struct {
 	config
 	ctx         *QueryContext
-	order       []OrderFunc
+	order       []cat.Order
 	inters      []Interceptor
 	predicates  []predicate.Cat
 	withOwner   *UserQuery
@@ -59,7 +59,7 @@ func (cq *CatQuery) Unique(unique bool) *CatQuery {
 }
 
 // Order specifies how the records should be ordered.
-func (cq *CatQuery) Order(o ...OrderFunc) *CatQuery {
+func (cq *CatQuery) Order(o ...cat.Order) *CatQuery {
 	cq.order = append(cq.order, o...)
 	return cq
 }
@@ -297,7 +297,7 @@ func (cq *CatQuery) Clone() *CatQuery {
 	return &CatQuery{
 		config:      cq.config,
 		ctx:         cq.ctx.Clone(),
-		order:       append([]OrderFunc{}, cq.order...),
+		order:       append([]cat.Order{}, cq.order...),
 		inters:      append([]Interceptor{}, cq.inters...),
 		predicates:  append([]predicate.Cat{}, cq.predicates...),
 		withOwner:   cq.withOwner.Clone(),

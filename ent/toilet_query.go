@@ -20,7 +20,7 @@ import (
 type ToiletQuery struct {
 	config
 	ctx        *QueryContext
-	order      []OrderFunc
+	order      []toilet.Order
 	inters     []Interceptor
 	predicates []predicate.Toilet
 	withCat    *CatQuery
@@ -56,7 +56,7 @@ func (tq *ToiletQuery) Unique(unique bool) *ToiletQuery {
 }
 
 // Order specifies how the records should be ordered.
-func (tq *ToiletQuery) Order(o ...OrderFunc) *ToiletQuery {
+func (tq *ToiletQuery) Order(o ...toilet.Order) *ToiletQuery {
 	tq.order = append(tq.order, o...)
 	return tq
 }
@@ -272,7 +272,7 @@ func (tq *ToiletQuery) Clone() *ToiletQuery {
 	return &ToiletQuery{
 		config:     tq.config,
 		ctx:        tq.ctx.Clone(),
-		order:      append([]OrderFunc{}, tq.order...),
+		order:      append([]toilet.Order{}, tq.order...),
 		inters:     append([]Interceptor{}, tq.inters...),
 		predicates: append([]predicate.Toilet{}, tq.predicates...),
 		withCat:    tq.withCat.Clone(),
